@@ -1,0 +1,2 @@
+[device]
+device_name=max96712
