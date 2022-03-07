@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1007</width>
+    <height>931</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QLabel" name="label_3">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>-10</y>
+      <width>41</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>device:</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="current_device_name">
+    <property name="geometry">
+     <rect>
+      <x>60</x>
+      <y>0</y>
+      <width>131</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_5">
+    <property name="geometry">
+     <rect>
+      <x>220</x>
+      <y>0</y>
+      <width>31</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>res:</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="current_res">
+    <property name="geometry">
+     <rect>
+      <x>250</x>
+      <y>0</y>
+      <width>91</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_7">
+    <property name="geometry">
+     <rect>
+      <x>380</x>
+      <y>0</y>
+      <width>31</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>fps:</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="current_framerate">
+    <property name="geometry">
+     <rect>
+      <x>410</x>
+      <y>0</y>
+      <width>71</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QLabel" name="Videolabel">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>20</y>
+      <width>761</width>
+      <height>651</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>60</y>
+      <width>61</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Sn_number:</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="CalibrateButton">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>120</y>
+      <width>181</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>calibrate</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="DownloadButton">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>150</y>
+      <width>181</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>download</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="snlineEdit">
+    <property name="geometry">
+     <rect>
+      <x>70</x>
+      <y>60</y>
+      <width>113</width>
+      <height>20</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="CaptureButton">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>90</y>
+      <width>181</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>capture</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1007</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menudddd">
+    <property name="title">
+     <string>devicename</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menuresolution">
+    <property name="title">
+     <string>resolution</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menuframemate">
+    <property name="title">
+     <string>framemate</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menudebug_camera">
+    <property name="title">
+     <string>debug_camera</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menubayer_rgb_mode">
+    <property name="title">
+     <string>bayer_rgb_mode</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menuoption">
+    <property name="title">
+     <string>option</string>
+    </property>
+   </widget>
+   <addaction name="menudddd"/>
+   <addaction name="menuresolution"/>
+   <addaction name="menuframemate"/>
+   <addaction name="menudebug_camera"/>
+   <addaction name="menubayer_rgb_mode"/>
+   <addaction name="menuoption"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionCOLOR_BAYER_BG2BGR">
+   <property name="text">
+    <string>COLOR_BAYER_BG2BGR</string>
+   </property>
+  </action>
+  <action name="actionCOLOR_BAYER_GB2BGR">
+   <property name="text">
+    <string>COLOR_BAYER_GB2BGR</string>
+   </property>
+  </action>
+  <action name="actionCOLOR_BAYER_RG2BGR">
+   <property name="text">
+    <string>COLOR_BAYER_RG2BGR</string>
+   </property>
+  </action>
+  <action name="actionCOLOR_BAYER_GR2BGR">
+   <property name="text">
+    <string>COLOR_BAYER_GR2BGR</string>
+   </property>
+  </action>
+  <action name="actioncolor_bayer">
+   <property name="text">
+    <string>color_bayer</string>
+   </property>
+  </action>
+  <action name="actioncaptureImage">
+   <property name="text">
+    <string>captureImage</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
