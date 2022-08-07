@@ -17,6 +17,7 @@ import subprocess
 import struct
 from PIL import ImageQt
 from argusCamera import ArgusCamera, ArgusStrOverlay, ArgusRectOverlay
+import json 
 dict_right_calibrate_pic_error={}
 dict_left_calibrate_pic_error={}
 FLAG=False
@@ -32,58 +33,43 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def window_init(self):
         self.ch=IconListWidget()
         self.ch.show()
-        self.device_name=self.parser_config_file("device","device_name")
-        self.soft_ware__name="Stereo calibrate tool_%s_V2.0"%self.device_name
+
+        self.soft_ware__name="Stereo calibrate tool_V2.2"
         self.setWindowTitle(self.soft_ware__name)
         self.setFixedSize(820, 740)
         self.capture_num=0
         self.old_sn_number=""
-        self.pushButton_2.clicked.connect(self.capture_image)
+        self.chart_size=""
+        self.pushButton_2.clicked.connect(self.capture_process_thread)
         self.pushButton_3.clicked.connect(self.calibration)
         self.pushButton_4.clicked.connect(self.download_eeprom_data_process)
         self.pushButton_5.clicked.connect(self.update_eeprom_data_process)
         self.pushButton_6.clicked.connect(self.imu_data_write_process)
-
         self.vertify_Button.clicked.connect(self.vertify_calibrate_process)
+        self.updateSn.clicked.connect(self.update_sn_process)
 
-        #self.sn_number=self.lineEdit.text()
-        #print(self.sn_number)
-        '''
-        gst_str_video0 = ('nvarguscamerasrc  sensor-id=0 ! '
-                          'video/x-raw(memory:NVMM), '
-                          'width=(int)1920, height=(int)1200, '
-                          'format=(string)NV12, framerate=(fraction)30/1 ! '
-                          'nvvidconv ! '
-                          'video/x-raw, width=(int){}, height=(int){}, '
-                          'format=(string)BGRx ! '
-                          'videoconvert ! appsink').format(1920, 1200)
-        self.cap_left = cv2.VideoCapture(gst_str_video0, cv2.CAP_GSTREAMER)
+        self.json_data = self.parse_json_file("config.json")
+        self.device_name = self.json_data["device_name"].strip()
+        self.image_height = int (self.json_data["image_height"].strip())
+        self.image_width = int (self.json_data["image_width"].strip())
 
-        gst_str_video1 = ('nvarguscamerasrc  sensor-id=1 ! '
-                          'video/x-raw(memory:NVMM), '
-                          'width=(int)1920, height=(int)1200, '
-                          'format=(string)NV12, framerate=(fraction)30/1 ! '
-                          'nvvidconv ! '
-                          'video/x-raw, width=(int){}, height=(int){}, '
-                          'format=(string)BGRx ! '
-                          'videoconvert ! appsink').format(1920, 1200)
+        print('image_height*image_width',self.image_height,'*', self.image_width)
+        #self.camera = ArgusCamera(0, previewWidth=1920, previewheight=1200, previewPosX=100, previewPosY=100, \
+        #                        captureWidth=1920, captureHeight=1200, rotation=180)
+        self.camera = ArgusCamera(0, previewWidth=self.image_width, previewheight=self.image_height,captureWidth=self.image_width, captureHeight=self.image_height,
+                                  gain=1,exposure_time=13000000)
 
-        self.cap_right = cv2.VideoCapture(gst_str_video1, cv2.CAP_GSTREAMER)
-
-        if self.cap_left:
-            print('cap_left.isOpened()', self.cap_left.isOpened())
-
-        if self.cap_right:
-            print('cap_right.isOpened()', self.cap_right.isOpened())
-        '''
-        self.camera = ArgusCamera(0, previewWidth=1920, previewheight=1200, previewPosX=100, previewPosY=100, \
-                                captureWidth=1920, captureHeight=1200, rotation=180)
         self._timer = QtCore.QTimer(self)
         self._timer.timeout.connect(self.Thread_Left_Camera)
         self._timer.start(5)
         self._timer_1 = QtCore.QTimer(self)
         self._timer_1.timeout.connect(self.Thread_Right_Camera)
         self._timer_1.start(5)
+
+    def parse_json_file(self,file_name):
+        with open(file_name, 'r') as f:
+            json_data = json.loads(f.read())
+        return json_data
 
 
     def transfer_16_bit_to_float(self,transfer_list):
@@ -99,6 +85,44 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return False
         else:
             return True
+
+    def decode(self,s):
+        return ''.join([chr(i) for i in [int(b, 2) for b in s.split(' ')]])
+
+    def update_sn_process(self):
+        self.sn_number = self.lineEdit.text()
+        print(self.sn_number)
+        if self.sn_number == "":
+            QMessageBox.information(self, 'warning', 'please scan sn number')
+            return
+        sn_length=len(self.sn_number)
+        sn_bytes=struct.pack('%ds'%sn_length,bytes(self.sn_number.encode('utf-8')))
+        print(sn_bytes)
+
+        for i in range(len(sn_bytes)):
+            cmd = "i2ctransfer -f -y 30 w2@0x55 %d %d" % (i, sn_bytes[i])
+            subprocess.call(cmd,shell=True)
+        QMessageBox.information(self, 'info', 'write sn number success')
+
+        '''
+        sn_number_list=[]
+        for i in range(len(sn_bytes)):
+            count_str = "%02x" % (i)
+            cmd = "i2ctransfer -f -y 30 w1@0x55 0x%s r1" % count_str
+            try:
+                text = self.ExecCmd(cmd)
+            except Exception as err:
+                print(err)
+                text=""
+            sn_number_list.append(int(text.rstrip("\n"),16))
+
+        binfile = open("111.bin", 'wb+')  # 以二进制格式打开一个文件用于读写（覆盖）
+        for x in sn_number_list:
+            s = struct.pack('B', x)  # 转换为字节流字符串，B代表unsigned char
+            binfile.write(s)
+
+        binfile.close()
+        '''
 
     def vertify_calibrate_process(self):
         print("========= vertify calibrate processing=========")
@@ -272,8 +296,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         print("close windowssssssssssssssssssssssssss")
         self._timer.stop()
         self._timer_1.stop()
+        self.camera.close()
+        time.sleep(1)
         exit(0)
-        #self.camera.close()
+
 
     def check_eeprom_write_process(self):
         eeprom_bin_file = os.path.join(self.sn_number, "calibrate_eeprom.bin")
@@ -373,7 +399,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         mtxR_data_list = self.get_no_space_string(mtxR_calibrate_data[0]).replace("[[", "").replace("]", "")
 
-
         mtxR_fx = mtxR_data_list.split(",")[0]
         mtxR_cx = mtxR_data_list.split(",")[2]
         mtxR_data_list = self.get_no_space_string(mtxR_calibrate_data[1]).replace("[,", "").replace("]", "")
@@ -413,6 +438,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         Ty = self.get_no_space_string(Translation_calibrate_data[1]).replace("[", "").replace("]", "").rstrip(",")
         Tz = self.get_no_space_string(Translation_calibrate_data[2]).replace("[", "").replace("]", "").rstrip(",")
 
+        Tx = float(Tx) * 0.07
+        Ty = float(Ty) * 0.07
+        Tz = float(Tz) * 0.07
+
         bin_file=os.path.join(self.sn_number,"calibrate_eeprom.bin")
         print("device_name={0}".format(self.device_name))
         if self.device_name=="max9296":
@@ -431,10 +460,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.process.start(cmd)
         self.process.readyReadStandardOutput.connect(
             lambda: self.read_result(str(self.process.readAllStandardOutput().data().decode('utf-8'))))
-        #self.process.waitForStarted()
         self.process.waitForFinished()
 
-        #print("111111111111111111111111111")
         self.check_eeprom_write_process()
         self.process.kill()
 
@@ -446,11 +473,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             rgbImage = cv2.cvtColor(frame_left, cv2.COLOR_BGR2RGB)
             convertToQtFormat = QtGui.QImage(rgbImage.data, rgbImage.shape[1], rgbImage.shape[0],
                                              QImage.Format_RGB888)
-            p = convertToQtFormat.scaled(1920, 1200, Qt.KeepAspectRatio)
+            p = convertToQtFormat.scaled(self.image_width, self.image_height, Qt.KeepAspectRatio)
             Pixmap = QPixmap.fromImage(p)
             self.label.setScaledContents(True)
             self.label.setPixmap(Pixmap)
-            #self.changePixmap.emit(p)
+
 
     def Thread_Right_Camera(self):
         global frame_right
@@ -459,11 +486,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             rgbImage1 = cv2.cvtColor(frame_right, cv2.COLOR_BGR2RGB)
             convertToQtFormat1 = QtGui.QImage(rgbImage1.data, rgbImage1.shape[1], rgbImage1.shape[0],
                                               QImage.Format_RGB888)
-            p1 = convertToQtFormat1.scaled(1920, 1200, Qt.KeepAspectRatio)
+            p1 = convertToQtFormat1.scaled(self.image_width, self.image_height, Qt.KeepAspectRatio)
             Pixmap = QPixmap.fromImage(p1)
             self.label_2.setScaledContents(True)
             self.label_2.setPixmap(Pixmap)
-            #self.changePixmap.emit(p1)
 
     def calibration(self):
         """
@@ -473,6 +499,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         thread_calibration = threading.Thread(target=self.calibration_opencv)
         thread_calibration.start()
 
+    #calibrate process
     def calibration_opencv(self):
         self.sn_number = self.lineEdit.text()
         print(self.sn_number)
@@ -486,6 +513,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         global dict_left_calibrate_pic_error
         global dict_right_calibrate_pic_error
 
+        self.chart_size = self.lineEdit_2.text()
         dict_left_calibrate_pic_error.clear()
         dict_right_calibrate_pic_error.clear()
         print("=========== start calibrte  =========")
@@ -546,6 +574,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                  criteria)  # Subpixel precision, the rough extraction of the corner of the precision
                 cv2.cornerSubPix(ChessImaL_gray, cornersL, (11, 11), (-1, -1),
                                  criteria)  # Subpixel precision, the rough extraction of the corner of the precision
+                cv2.drawChessboardCorners(ChessImaR, (16,10), cornersR, retR)
+
+                cv2.drawChessboardCorners(ChessImaL, (16, 10), cornersL, retL)
                 find_left_file.append(fname_left)
                 find_right_file.append(fname_right)
 
@@ -586,11 +617,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             print("left pic:{0},error:{1}".format(find_left_file[i], error))
             dict_left_calibrate_pic_error[find_left_file[i]]=str(error)
             mean_error_left += error
+
         mean_reproject_error_left = mean_error_left / len(objpoints)
         print("left reproject error  : ", mean_reproject_error_left)
-
         print('mean reproject error', (mean_reproject_error_left + mean_reproject_error_right) / 2)
-
 
         #  Subsequent to get new camera matrix initUndistortRectifyMap to generate mapping relationship with remap
         hL, wL = ChessImaL.shape[:2]
@@ -622,14 +652,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # InitUndistortRectifyMap function is used to calculate distortion correction and calibration stereo mapping transformation, realize the polar alignment.
         Left_Stereo_Map = cv2.initUndistortRectifyMap(MLS, dLS, RL, PL,
                                                       ChessImaR_gray.shape[::-1], cv2.CV_16SC2)
+
+
         Right_Stereo_Map = cv2.initUndistortRectifyMap(MRS, dRS, RR, PR,
                                                        ChessImaR_gray.shape[::-1], cv2.CV_16SC2)
 
         # Stereo correction effect display
         frameR = cv2.imread(img_show_righ_path)
         frameL = cv2.imread(img_show_left_path)
-        #frameR = cv2.imread("char_left.jpg")
-        #frameL = cv2.imread("char_right.jpg")
+
         Left_rectified = cv2.remap(frameL, Left_Stereo_Map[0], Left_Stereo_Map[1], cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT,
                                    0)  # The remap function is used to complete the mapping
         # Left_rectified = Left_rectified[y_left:y_left+h_left,x_left:x_left+w_left]
@@ -672,8 +703,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 else:
                     f.write("]")
                 f.write('\n')
-            #f.write(str(mtxR))
-            #f.write('\n')
+
             f.write('distR :: ' + '\n')
             # f.write(str(distR[0:6][0]))
             for i in range(distR.shape[0]):
@@ -684,7 +714,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             f.write('\n')
             f.write('retL :: ' + str(retL) + '\n')
             f.write('mtxL :: ' + '\n')
-            #f.write(str(mtxL))
+
             for i in range(mtxL.shape[0]):
                 if i==0:
                     f.write("[[")
@@ -714,13 +744,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 f.write("]")
                 f.write('\n')
 
-            #f.write(str(R))
-
             f.write("Translation ::" + '\n')
             for i in range(T.shape[0]):
                 f.write("[")
                 for j in range(T.shape[1]):
-                    f.write(str(T[i][j]) + " ")
+                    f.write(str(float(T[i][j])*float(self.chart_size)) + " ")
                 f.write("]")
                 f.write('\n')
 
@@ -741,6 +769,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             f.write("mean reproject error  :  " + str((mean_reproject_error_left + mean_reproject_error_right) / 2) + '\n')
         print("============ calibrate ending ======================")
         FLAG = True
+        self.capture_num=0
         '''
         calibrate_end_image = cv2.imread(os.path.join(save_data,"two.jpg"))
         height, width = calibrate_end_image.shape[:2]
@@ -763,6 +792,41 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """
         self.label_right_camera.setPixmap(QPixmap.fromImage(image))
 
+    def capture_process_thread(self):
+        thread_capture = threading.Thread(target=self.capture_image)
+        thread_capture.start()
+
+    def judge_list_equal(self,list1,list2,len):
+        for i in range(len):
+            if list1[i]!=list2[i]:
+                return False
+        return True
+
+    def get_jaka_position(self,position_data,sock):
+        try_times=0
+        while True:
+            testDict = '{"cmdName":"get_joint_pos"}'
+            sock.send_msg(testDict)
+            recvdata = sock.recv_msg()
+            if self.judge_list_equal(recvdata["joint_pos"],position_data,6):
+                break
+            time.sleep(1)
+            try_times+=1
+            if try_times==10:
+                return False
+        return True
+
+    def get_jaka_status(self,sock):
+        testDict = '{"cmdName":"get_robot_state"}'
+        sock.send_msg(testDict)
+        recvdata = sock.recv_msg()
+        robot_enable=recvdata["enable"].strip()
+        power=recvdata["power"].strip()
+        robot_enable_status=True if robot_enable=="robot_enabled" else False
+        power_status=True if power=="powered_on" else False
+        return [robot_enable_status,power_status]
+
+    #using jaka robot to capture pictures
     def capture_image(self):
         self.sn_number = self.lineEdit.text()
         print(self.sn_number)
@@ -784,35 +848,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             os.makedirs(os.path.join(save_result,"left"))
         if os.path.exists(os.path.join(save_result,"right")) is False:
             os.makedirs(os.path.join(save_result,"right"))
-        img_left_path = os.path.join(save_result,"left")+"/%02d"%self.capture_num + '.jpg'
-        img_right_path =os.path.join(save_result,"right")+"/%02d"%self.capture_num + '.jpg'
 
-        #if self.cap_left.isOpened() == True:
+        '''manual'''
+        img_left_path = os.path.join(save_result, "left") + "/%02d" % self.capture_num + '.jpg'
+        img_right_path = os.path.join(save_result, "right") + "/%02d" % self.capture_num + '.jpg'
+        cv2.imwrite(img_left_path, frame_left)
+        cv2.imwrite(img_right_path, frame_right)
         global CAPTURE_FLAG
         CAPTURE_FLAG = True
         global capture_path
-        #global frame_left
         capture_path = img_left_path
-        #frame_left=cv2.resize(frame_left,(1920,1200),interpolation=cv2.INTER_AREA)
-        cv2.imwrite(img_left_path, frame_left)
-        self.ch.additems()
 
-        #if self.cap_right.isOpened() == True:
         global RIGHT_CAPTURE_FLAG
         RIGHT_CAPTURE_FLAG = True
         global right_capture_path
-        #global frame_right
         right_capture_path = img_right_path
-        #frame_right = cv2.resize(frame_right, (1920, 1200), interpolation=cv2.INTER_AREA)
-        cv2.imwrite(img_right_path, frame_right)
         self.ch.additems()
-        self.capture_num+=1
-
+        self.capture_num += 1
 
 class IconListWidget(QWidget):
     def __init__(self, parent=None):
         super(IconListWidget, self).__init__(parent)
-        #self.resize(800, 900)
         self.setFixedSize(800, 900)
         self.setWindowTitle("calibrate result show")
         self.setupUi()
@@ -832,7 +888,6 @@ class IconListWidget(QWidget):
 
         self.iconlist.setContextMenuPolicy(Qt.CustomContextMenu)
         self.iconlist.customContextMenuRequested.connect(self.contextMenuEvent)
-
 
         self._timer = QtCore.QTimer(self)
         self._timer.timeout.connect(self.show_calibrate_items)
@@ -857,12 +912,8 @@ class IconListWidget(QWidget):
     def DeleteItem(self):
         current_row_position=self.iconlist.currentRow()
         delete_file_name=self.iconlist.item(current_row_position).text().split(":")[0]
-        #specific_file_name=delete_file_name.split("/")[-1].strip()
-        #print("remove left pic name:",os.path.join("left",specific_file_name))
-        #print("remove right pic name:", os.path.join("right", specific_file_name))
         if os.path.exists(delete_file_name):
             os.remove(delete_file_name)
-        
 
         QMessageBox.information(self,"Message","delete picture %s"%delete_file_name)
         self.iconlist.takeItem(self.iconlist.currentRow())
@@ -876,6 +927,7 @@ class IconListWidget(QWidget):
         if CAPTURE_FLAG:
             CAPTURE_FLAG = False
             text_str=capture_path+":0.0000"
+
             item = QListWidgetItem(QtGui.QIcon(capture_path), text_str)
             self.iconlist.addItem(item)
             self.iconlist.setIconSize(QSize(350, 350))

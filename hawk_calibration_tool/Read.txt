@@ -1,0 +1,8 @@
+标定软件
+老版本 不带机械手臂
+相较于v1.10  ui增加了chart_size
+
+test：
+	python3 main_v4.py
+	sn：1111
+	chart_size:0.07

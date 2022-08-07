@@ -37,8 +37,8 @@ class ArgusRectOverlay:
 #  it calls functions from dynamic link library (_argusCamera.so)
 #  the library is based on Nvidia Multimedia API
 class ArgusCamera:
-    def __init__(self, port, previewWidth=960, previewheight=540, previewPosX=0, previewPosY=0,\
-                captureWidth=640, captureHeight=480, argus_direct_display=False, rotation=0):
+    def __init__(self, port, previewWidth=960, previewheight=540,
+                captureWidth=640, captureHeight=480,gain=0,exposure_time=0):
         # port : camera port
         # previewWidth : privew window width
         # previewHeight : preview window height
@@ -48,6 +48,8 @@ class ArgusCamera:
         # captureHeight : capture image height
         # argus_direct_display : not used yet, TBD
         # rotation : rotate the image, available options are: 0, 90, 180, 270 degree
+        #cap = ArgusCamera(0, previewWidth=1920, previewheight=1200, previewPosX=100, previewPosY=100, captureWidth=1920,
+        #                  captureHeight=1200, rotation=180, exposure_time=exposure_time)
 
         self.__port = port
         self.__captureWidth = captureWidth
@@ -55,18 +57,14 @@ class ArgusCamera:
         self.count=1
         self.__camera = ctypes.CDLL(ARGUS_DANYMIC_LIBRARY)
 
-        if argus_direct_display:
-            display = 1
-        else:
-            display = 0
-
+        print("exposure_time={0}",format(exposure_time))
         self.__camera.argusCaptureDisplay(
             ctypes.c_int(port),
             ctypes.c_int(previewWidth), ctypes.c_int(previewheight),
             ctypes.c_int(captureWidth), ctypes.c_int(captureHeight),
-            ctypes.c_int(previewPosX), ctypes.c_int(previewPosY),
             ctypes.c_int(30), # fixed to 30fps for now
-            ctypes.c_int(rotation))
+            ctypes.c_int(gain),
+            ctypes.c_int(exposure_time))
 
     # return a cv2 image frame
     def read(self):
@@ -99,7 +97,7 @@ class ArgusCamera:
             #pass
             print('ArgusCamera capture error,{0}'.format(err))
 
-        return False, 0
+        return False,0
     
     def read_1(self):
         try:
@@ -171,6 +169,7 @@ class ArgusCamera:
 
     # call this function to release the resources
     def close(self):
+        print("close camera")
         self.__camera.argusRelease()
 
     def release(self):
